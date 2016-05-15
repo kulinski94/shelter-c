@@ -13,7 +13,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 
-void dostuff(int); /* function prototype */
+void dostuff(int);
 void error(const char *msg)
 {
     perror(msg);
@@ -80,7 +80,7 @@ void dostuff (int sock)
 {
    int shmid;
    key_t key;
-   char *shm;
+   shelter *shm;
    char *s;
    
    shelter shelter1;
@@ -90,7 +90,7 @@ void dostuff (int sock)
    printf("Name: %s\n",shelter1.name);
    printf("Free places %d\n",shelter1.free_places);
    
-   key = 9568;
+   key = 9569;
    
    shmid = shmget(key,sizeof(shelter),IPC_CREAT | 0666);
    
@@ -99,24 +99,18 @@ void dostuff (int sock)
        error("shmid");
    }
    
-   shm = shmat(shmid,NULL,0);
-   if(shm == (char *) -1)
-   {
-       error("shma");
-   }
-    
-   printf("Here is shared:%s",shm);
+   shm = (shelter*)shmat(shmid,NULL,0);
 
-   printf("\n");
+   printf("Here is shared Name:%s\n",shm->name);
+   printf("Here is shared Free Spaces:%d\n",shm->free_places);
    
    int n;
-   char buffer[256];
-      
+   char buffer[256];      
    bzero(buffer,256);
    n = read(sock,buffer,255);
    if (n < 0) error("ERROR reading from socket");
    
-   memcpy(shm, buffer, 255);
+   memcpy(shm, &shelter1, 255);
    printf("Here is the message: %s\n",buffer);
    n = write(sock,"I got your message",18);
    if (n < 0) error("ERROR writing to socket");
