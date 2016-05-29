@@ -28,8 +28,6 @@ typedef struct shelter
 
 int main(int argc, char *argv[])
 {
-     
-     
      int sockfd, newsockfd, portno, pid;
      socklen_t clilen;
      struct sockaddr_in serv_addr, cli_addr;
@@ -71,6 +69,10 @@ int main(int argc, char *argv[])
      return 0; /* we never get here */
 }
 
+void reservePlace()
+{
+}
+
 /******** DOSTUFF() *********************
  There is a separate instance of this function 
  for each connection.  It handles all communication
@@ -83,14 +85,7 @@ void dostuff (int sock)
    shelter *shm;
    char *s;
    
-   shelter shelter1;
-   shelter1.name = "God";
-   shelter1.free_places = 5;
-   
-   printf("Name: %s\n",shelter1.name);
-   printf("Free places %d\n",shelter1.free_places);
-   
-   key = 9569;
+   key = 9573;
    
    shmid = shmget(key,sizeof(shelter),IPC_CREAT | 0666);
    
@@ -100,18 +95,30 @@ void dostuff (int sock)
    }
    
    shm = (shelter*)shmat(shmid,NULL,0);
+   if(shm->name == NULL)
+   {
+       shm->name = "Noah's Ark\0";
+       shm->free_places = 5;
+       printf("Initial\n");
+   }
 
-   printf("Here is shared Name:%s\n",shm->name);
-   printf("Here is shared Free Spaces:%d\n",shm->free_places);
+   printf("Shelter Name: %s\n",shm->name);
+   printf("Free Places: %d\n",shm->free_places);
    
    int n;
    char buffer[256];      
    bzero(buffer,256);
    n = read(sock,buffer,255);
-   if (n < 0) error("ERROR reading from socket");
-   
-   memcpy(shm, &shelter1, 255);
+   if (n < 0) error("ERROR reading from socket");   
    printf("Here is the message: %s\n",buffer);
-   n = write(sock,"I got your message",18);
+   
+   if(shm->free_places > 0 && n > 0)
+   {
+        shm->free_places--;
+        n = write(sock,"You have reserved",17);
+   }else
+   {
+       n = write(sock,"Sorry we dont have free places",30);
+   }
    if (n < 0) error("ERROR writing to socket");
 }
