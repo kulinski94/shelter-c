@@ -19,8 +19,12 @@ typedef struct shelter
     int free_places;
 }shelter;
 
-void dostuff(int);
+void handleClient(int);
 int reservePlace(shelter*);
+shelter* getShelterData(int);
+void initializeShelterData(shelter*);
+void readClientMessage(int);
+void writeResponse(int, int);
 
 void error(const char *msg)
 {
@@ -73,6 +77,7 @@ int main(int argc, char *argv[])
 
 int reservePlace(shelter* shm)
 {
+    //should use semaphore
     if(shm->free_places <= 0)
     {
         return 0;
@@ -81,52 +86,60 @@ int reservePlace(shelter* shm)
     return 1;
 }
 
-/******** DOSTUFF() *********************
- There is a separate instance of this function 
- for each connection.  It handles all communication
- once a connnection has been established.
- *****************************************/
-void dostuff (int sock)
-{
+shelter* getShelterData(int id){
    int shmid;
    key_t key;
-   shelter *shm;
-   char *s;
-   
-   key = 9573;
-   
+   key = id;
    shmid = shmget(key,sizeof(shelter),IPC_CREAT | 0666);
-   
    if(shmid < 0)
    {
        error("shmid");
    }
-   
-   shm = (shelter*)shmat(shmid,NULL,0);
-   if(shm->name == NULL)
-   {
-       shm->name = "Noah's Ark\0";
-       shm->free_places = 5;
-       printf("Initial\n");
-   }
+   return (shelter*)shmat(shmid,NULL,0);
+}
 
-   printf("Shelter Name: %s\n",shm->name);
-   printf("Free Places: %d\n",shm->free_places);
-   
+void initializeShelterData(shelter* shm){
+    if(shm->name == NULL)
+    {
+        shm->name = "Noah's Ark\0";
+        shm->free_places = 5;
+        printf("Shelter initialized\n");
+    }
+}
+void readClientMessage(int sock){
    int n;
    char buffer[256];      
    bzero(buffer,256);
    n = read(sock,buffer,255);
    if (n < 0) error("ERROR reading from socket");   
    printf("Here is the message: %s\n",buffer);
-   
-   int success = reservePlace(shm);
+}
+void writeResponse(int sock, int success){
+   int n;
    if(success == 1)
    {
         n = write(sock,"You have reserved",17);
    }else
    {
-       n = write(sock,"Sorry we dont have free places",30);
+       n = write(sock,"Sorry we dont have free places",29);
    }
    if (n < 0) error("ERROR writing to socket");
+}
+void handleClient(int sock)
+{
+   shelter *shm;
+   char *s;
+   
+   shm = getShelterData(9574);
+   
+   initializeShelterData(shm);
+
+   printf("Shelter Name: %s\n",shm->name);
+   printf("Free Places: %d\n",shm->free_places);
+   
+   readClientMessage(sock);
+
+   int success = reservePlace(shm);
+   
+   writeResponse(sock,success);
 }
