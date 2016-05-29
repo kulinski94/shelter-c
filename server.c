@@ -13,18 +13,20 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 
-void dostuff(int);
-void error(const char *msg)
-{
-    perror(msg);
-    exit(1);
-}
-
 typedef struct shelter
 {
     char* name;
     int free_places;
 }shelter;
+
+void dostuff(int);
+int reservePlace(shelter*);
+
+void error(const char *msg)
+{
+    perror(msg);
+    exit(1);
+}
 
 int main(int argc, char *argv[])
 {
@@ -69,8 +71,14 @@ int main(int argc, char *argv[])
      return 0; /* we never get here */
 }
 
-void reservePlace()
+int reservePlace(shelter* shm)
 {
+    if(shm->free_places <= 0)
+    {
+        return 0;
+    }
+    shm->free_places--;
+    return 1;
 }
 
 /******** DOSTUFF() *********************
@@ -112,9 +120,9 @@ void dostuff (int sock)
    if (n < 0) error("ERROR reading from socket");   
    printf("Here is the message: %s\n",buffer);
    
-   if(shm->free_places > 0 && n > 0)
+   int success = reservePlace(shm);
+   if(success == 1)
    {
-        shm->free_places--;
         n = write(sock,"You have reserved",17);
    }else
    {
