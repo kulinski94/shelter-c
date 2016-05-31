@@ -66,7 +66,7 @@ int main(int argc, char *argv[])
              error("ERROR on fork");
          if (pid == 0)  {
              close(sockfd);
-             dostuff(newsockfd);
+             handleClient(newsockfd);
              exit(0);
          }
          else close(newsockfd);
